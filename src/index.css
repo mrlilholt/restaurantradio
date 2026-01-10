@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Optional: Add a nice base font or dark mode background here later */
+body {
+  @apply bg-slate-900 text-white; /* Dark mode by default for that 'Radio' vibe */
+}
