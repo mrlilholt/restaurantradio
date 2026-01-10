@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../context/authContext'; // <--- NEW
-import { db } from '../utils/firebase'; // <--- NEW
-import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, setDoc } from 'firebase/firestore'; // <--- NEW
+import { useAuth } from '../context/authContext';
+import { db } from '../utils/firebase';
+import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, setDoc, getDoc } from 'firebase/firestore'; 
 import { 
-  FaCoffee, FaWineGlass, FaUtensils, FaHamburger, FaBreadSlice, FaBeer, 
-  FaMusic, FaSearch, FaGlobeAmericas, FaTag, FaSpinner, FaArrowLeft, FaMapMarkerAlt, 
-  FaHeart, FaRegHeart, FaStar, FaCocktail, FaLeaf, FaMoon, FaPlay // <--- Added missing icons
+  FaCoffee, FaWineGlass, FaUtensils, FaBeer, 
+  FaMusic, FaGlobeAmericas, FaTag, FaSpinner, FaArrowLeft, FaMapMarkerAlt, 
+  FaHeart, FaRegHeart, FaStar, FaCocktail, FaLeaf, FaMoon, FaPlay, FaHistory // <--- Added FaHistory
 } from 'react-icons/fa';
 import { useRadioBrowser, getFlagEmoji } from '../hooks/useRadioBrowser';
 import DailyInspo from './DailyInspo';
@@ -22,10 +22,11 @@ const stationTypes = [
 
 const StationGrid = ({ onPlayStation }) => { 
   const { countries, searchStation } = useRadioBrowser();
-  const { currentUser } = useAuth(); // <--- Get current user
+  const { currentUser } = useAuth();
   
   // --- STATE ---
-  const [favorites, setFavorites] = useState([]); // <--- Local Favorites State
+  const [favorites, setFavorites] = useState([]);
+  const [recentlyPlayed, setRecentlyPlayed] = useState([]); // <--- NEW STATE
   const [selectedLocation, setSelectedLocation] = useState(null); 
   const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,59 +34,82 @@ const StationGrid = ({ onPlayStation }) => {
   const [stationList, setStationList] = useState([]); 
   const [loadingVibeId, setLoadingVibeId] = useState(null); 
 
-  // --- NEW: FIRESTORE SYNC ---
+  // --- FIRESTORE SYNC (Favorites + History) ---
   useEffect(() => {
     if (!currentUser) {
       setFavorites([]);
+      setRecentlyPlayed([]);
       return;
     }
 
     const userRef = doc(db, 'users', currentUser.uid);
     
-    // Listen for changes in real-time
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.favorites) {
-          setFavorites(data.favorites);
-        }
+        if (data.favorites) setFavorites(data.favorites);
+        if (data.recentlyPlayed) setRecentlyPlayed(data.recentlyPlayed); // <--- LOAD HISTORY
       }
     });
 
     return () => unsubscribe();
   }, [currentUser]);
 
-  // --- NEW: TOGGLE FAVORITE FUNCTION ---
+  // --- ACTIONS ---
+
+  // 1. Toggle Favorite
   const toggleFavorite = async (e, station) => {
-    e.stopPropagation(); // Stop card click
-    
-    if (!currentUser) {
-        alert("Please log in to save favorites!");
-        return;
-    }
+    e.stopPropagation();
+    if (!currentUser) { alert("Please log in to save favorites!"); return; }
 
     const userRef = doc(db, 'users', currentUser.uid);
     const isAlreadyFav = favorites.some(f => f.stationuuid === station.stationuuid);
 
     try {
       if (isAlreadyFav) {
-        await updateDoc(userRef, {
-          favorites: arrayRemove(station)
-        });
+        await updateDoc(userRef, { favorites: arrayRemove(station) });
       } else {
-        await setDoc(userRef, {
-          favorites: arrayUnion(station)
-        }, { merge: true });
+        await setDoc(userRef, { favorites: arrayUnion(station) }, { merge: true });
       }
     } catch (error) {
       console.error("Error updating favorites:", error);
     }
   };
 
-  // Helper to check status
+  // 2. Add to History (The "Smart" Logic)
+  const addToHistory = async (station) => {
+    if (!currentUser) return;
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    
+    try {
+        // We need to read the current list first to manage the order/limit
+        const docSnap = await getDoc(userRef);
+        let currentHistory = [];
+        if (docSnap.exists() && docSnap.data().recentlyPlayed) {
+            currentHistory = docSnap.data().recentlyPlayed;
+        }
+
+        // Remove the station if it's already in the list (so we can move it to the top)
+        const filtered = currentHistory.filter(s => s.stationuuid !== station.stationuuid);
+        
+        // Add to front
+        filtered.unshift(station);
+
+        // Keep only top 6
+        const trimmed = filtered.slice(0, 6);
+
+        await setDoc(userRef, { recentlyPlayed: trimmed }, { merge: true });
+    } catch (error) {
+        console.error("Error saving history:", error);
+    }
+  };
+
+  // Helper check
   const isFavorite = (id) => favorites.some(f => f.stationuuid === id);
 
-
+  // --- PREPARE CARDS ---
+  
   const filteredCountries = countries.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -99,25 +123,30 @@ const StationGrid = ({ onPlayStation }) => {
     description: `${favorites.length} stations in your collection.`
   };
 
-  const displayCards = [favoritesCard, ...stationTypes];
+  // NEW HISTORY CARD
+  const historyCard = {
+    id: 'history',
+    name: 'Recently Played',
+    tags: 'history',
+    icon: FaHistory,
+    color: 'from-pink-500 to-rose-600',
+    description: 'Jump back into your recent grooves.'
+  };
 
-  // --- HELPER: GROUP FAVORITES ---
+  const displayCards = [favoritesCard, historyCard, ...stationTypes];
+
+  // --- GROUPING LOGIC FOR FAVORITES ---
   const groupedFavorites = useMemo(() => {
     if (!favorites.length) return {};
-
     const grouped = {};
-
     favorites.forEach(station => {
       const country = station.country || 'International';
       let genre = station.tags ? station.tags.split(',')[0].trim() : 'Various';
       genre = genre.charAt(0).toUpperCase() + genre.slice(1);
-
       if (!grouped[country]) grouped[country] = {};
       if (!grouped[country][genre]) grouped[country][genre] = [];
-      
       grouped[country][genre].push(station);
     });
-
     return Object.keys(grouped).sort().reduce((obj, key) => {
         obj[key] = grouped[key];
         return obj;
@@ -125,21 +154,23 @@ const StationGrid = ({ onPlayStation }) => {
   }, [favorites]);
 
 
-  // --- HANDLERS ---
+  // --- EVENT HANDLERS ---
+
   const handleVibeClick = async (vibe) => {
     setLoadingVibeId(vibe.id);
     setStationList([]); 
 
-    if (vibe.id === 'favorites') {
+    // Handle Favorites & History directly
+    if (vibe.id === 'favorites' || vibe.id === 'history') {
         setActiveVibe(vibe);
         setLoadingVibeId(null);
         return;
     }
 
+    // Regular Search Logic
     const countryCode = selectedLocation ? selectedLocation.iso_3166_1 : undefined;
     const tags = vibe.tags.split(','); 
     const limit = 30; 
-    
     let foundStations = [];
 
     if (countryCode) {
@@ -168,11 +199,16 @@ const StationGrid = ({ onPlayStation }) => {
     setLoadingVibeId(null);
   };
 
+  // THE MASTER PLAY FUNCTION
   const playSpecificStation = (station) => {
+    // 1. Save to History
+    addToHistory(station);
+
+    // 2. Play Music
     onPlayStation({
         ...station,
-        atmosphere: activeVibe.name,
-        coverGradient: activeVibe.color,
+        atmosphere: activeVibe ? activeVibe.name : 'Daily Pick',
+        coverGradient: activeVibe ? activeVibe.color : 'from-slate-700 to-slate-900',
         locationName: selectedLocation ? selectedLocation.name : 'Global'
     });
   };
@@ -201,7 +237,7 @@ const StationGrid = ({ onPlayStation }) => {
                 <h4 className="font-bold text-white truncate group-hover:text-brand-light transition-colors">{station.name}</h4>
                 <p className="text-xs text-slate-400 flex items-center gap-2">
                     <span>{station.bitrate}kbps</span>
-                    {activeVibe.id === 'favorites' && <span className="text-brand hidden sm:inline">{station.atmosphere}</span>}
+                    {activeVibe && activeVibe.id === 'favorites' && <span className="text-brand hidden sm:inline">{station.atmosphere}</span>}
                 </p>
             </div>
         </div>
@@ -226,12 +262,12 @@ const StationGrid = ({ onPlayStation }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">      
       
-      {/* --- NEW: DAILY INSPO --- */}
+      {/* DAILY INSPO - NOW USES playSpecificStation to save history */}
       {!activeVibe && (
-         <DailyInspo onPlay={onPlayStation} />
+         <DailyInspo onPlay={playSpecificStation} />
       )}
 
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       {!activeVibe && (
         <div className="mb-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -278,7 +314,7 @@ const StationGrid = ({ onPlayStation }) => {
         </div>
       )}
 
-      {/* --- VIEW 1: THE GRID --- */}
+      {/* VIEW 1: THE GRID */}
       {!activeVibe && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-32">
             {displayCards.map((station) => (
@@ -287,7 +323,7 @@ const StationGrid = ({ onPlayStation }) => {
                 onClick={() => handleVibeClick(station)}
                 className="group relative bg-slate-800/50 hover:bg-slate-800 border border-white/5 hover:border-white/10 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer overflow-hidden"
               >
-                {selectedLocation && station.id !== 'favorites' && (
+                {selectedLocation && station.id !== 'favorites' && station.id !== 'history' && (
                     <div className="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity z-10">
                         <div className="w-8 h-8 rounded-full bg-slate-900/80 flex items-center justify-center text-lg border border-white/10 shadow-lg">
                             {getFlagEmoji(selectedLocation.iso_3166_1)}
@@ -297,13 +333,12 @@ const StationGrid = ({ onPlayStation }) => {
                 
                 <div className={`absolute inset-0 bg-gradient-to-br ${station.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
                 
-                {/* --- CARD HEADER: ICON + HEART --- */}
                 <div className="relative z-10 flex items-start justify-between">
                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${station.color} flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform duration-300`}>
                         <station.icon className="text-white text-xl" />
                     </div>
 
-                    {station.id !== 'favorites' && (
+                    {station.id !== 'favorites' && station.id !== 'history' && (
                         <button 
                             onClick={(e) => toggleFavorite(e, station)}
                             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110 active:scale-90 backdrop-blur-md"
@@ -320,37 +355,24 @@ const StationGrid = ({ onPlayStation }) => {
                 <div className="relative z-10 mt-6 mb-2">
                     <h3 className="text-xl font-bold text-white mb-1 group-hover:text-brand-light transition-colors">{station.name}</h3>
                     <p className="text-xs font-medium text-brand uppercase tracking-wider mb-2">
-                        {station.id === 'favorites' 
-                           ? 'Your Collection' 
-                           : `${selectedLocation ? selectedLocation.name : 'Global'} • ${station.tags.split(',')[0]}`
+                        {station.id === 'favorites' ? 'Your Collection' : 
+                         station.id === 'history' ? 'Recent Listens' :
+                         `${selectedLocation ? selectedLocation.name : 'Global'} • ${station.tags.split(',')[0]}`
                         }
                     </p>
                     <p className="text-slate-400 text-sm leading-relaxed pr-8">{station.description}</p>
-                </div>
-
-                <div className="absolute bottom-4 right-4 z-20">
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 backdrop-blur-sm border border-white/5">
-                        {loadingVibeId === station.id ? (
-                            <FaSpinner className="text-brand animate-spin" />
-                        ) : (
-                            <FaMusic className="text-white ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        )}
-                    </div>
                 </div>
               </div>
             ))}
           </div>
       )}
 
-      {/* --- VIEW 2: THE EXPANDED LIST --- */}
+      {/* VIEW 2: EXPANDED LIST */}
       {activeVibe && (
         <div className="animate-fadeIn">
-            {/* Expanded Header */}
+            {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-                <button 
-                    onClick={handleBack}
-                    className="p-3 rounded-full bg-slate-800 hover:bg-slate-700 text-white transition-colors"
-                >
+                <button onClick={handleBack} className="p-3 rounded-full bg-slate-800 hover:bg-slate-700 text-white transition-colors">
                     <FaArrowLeft />
                 </button>
                 <div>
@@ -361,34 +383,28 @@ const StationGrid = ({ onPlayStation }) => {
                         {activeVibe.name}
                     </h2>
                     <p className="text-slate-400 text-sm">
-                        {activeVibe.id === 'favorites' 
-                            ? `${favorites.length} stations in your library`
-                            : `Found ${stationList.length} stations matching your vibe`
-                        }
+                        {activeVibe.id === 'favorites' ? `${favorites.length} stations in your library` :
+                         activeVibe.id === 'history' ? 'Your last 6 stations' :
+                         `Found ${stationList.length} stations matching your vibe`}
                     </p>
                 </div>
             </div>
 
             <div className="pb-32">
                 
-                {/* --- RENDER LOGIC FOR FAVORITES vs REGULAR --- */}
-                
-                {/* 1. FAVORITES VIEW (Grouped) */}
-                {activeVibe.id === 'favorites' ? (
+                {/* 1. FAVORITES VIEW */}
+                {activeVibe.id === 'favorites' && (
                      Object.keys(groupedFavorites).length === 0 ? (
                         <div className="text-center py-20 bg-slate-800/30 rounded-2xl border border-white/5">
                             <p className="text-slate-400">You haven't saved any stations yet.</p>
                             <button onClick={handleBack} className="text-brand font-bold mt-2 hover:underline">Go Back</button>
                         </div>
                      ) : (
-                        // Map Countries
                         Object.entries(groupedFavorites).map(([country, genreMap]) => (
                             <div key={country} className="mb-8 animate-fadeIn">
                                 <h3 className="flex items-center gap-2 text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">
                                     <FaGlobeAmericas className="text-brand" /> {country}
                                 </h3>
-                                
-                                {/* Map Genres inside Country */}
                                 {Object.entries(genreMap).map(([genre, stations]) => (
                                     <div key={genre} className="mb-6 ml-2 md:ml-6">
                                         <h4 className="flex items-center gap-2 text-sm font-bold text-brand uppercase tracking-wider mb-3">
@@ -402,8 +418,24 @@ const StationGrid = ({ onPlayStation }) => {
                             </div>
                         ))
                      )
-                ) : (
-                    // 2. REGULAR SEARCH VIEW (Flat List)
+                )}
+
+                {/* 2. HISTORY VIEW */}
+                {activeVibe.id === 'history' && (
+                    recentlyPlayed.length === 0 ? (
+                        <div className="text-center py-20 bg-slate-800/30 rounded-2xl border border-white/5">
+                            <p className="text-slate-400">No listening history yet. Go play some music!</p>
+                            <button onClick={handleBack} className="text-brand font-bold mt-2 hover:underline">Go Back</button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-3">
+                            {recentlyPlayed.map(station => renderStationRow(station))}
+                        </div>
+                    )
+                )}
+
+                {/* 3. REGULAR SEARCH VIEW */}
+                {activeVibe.id !== 'favorites' && activeVibe.id !== 'history' && (
                     <div className="grid grid-cols-1 gap-3">
                         {stationList.length === 0 ? (
                             <div className="text-center py-20 bg-slate-800/30 rounded-2xl border border-white/5">
@@ -418,7 +450,6 @@ const StationGrid = ({ onPlayStation }) => {
             </div>
         </div>
       )}
-
     </div>
   );
 };
