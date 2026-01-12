@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext'; // Note: Ensure capitalization matches your file (AuthContext vs authContext)
+import { useAuth } from '../Context/AuthContext'; // Note: Ensure capitalization matches your file (AuthContext vs authContext)
 import { Navigate } from 'react-router-dom';
 import { FaUserCircle, FaMusic, FaGoogle } from 'react-icons/fa';
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../Context/AuthContext';
 import { db } from '../utils/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { FaStore, FaGlobeAmericas, FaSave, FaCheck, FaCreditCard, FaCrown, FaBuilding } from 'react-icons/fa';

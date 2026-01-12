@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaExclamationTriangle, FaHeart, FaRegHeart } from 'react-icons/fa';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../Context/AuthContext'; 
 
 const Player = ({ station }) => {
   const audioRef = useRef(null);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaCheck, FaTimes, FaCrown, FaCreditCard, FaRegCalendarAlt, FaInfinity, FaStar, FaLeaf } from 'react-icons/fa';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../Context/AuthContext';
 import { handleManageBilling } from '../utils/stripePayment';
 
 const PricingModal = ({ onClose, onUpgrade }) => {
