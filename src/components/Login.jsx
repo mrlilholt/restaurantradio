@@ -1,12 +1,22 @@
 import React from 'react';
-import { useAuth } from '../context/authContext';
+import { useAuth } from '../context/AuthContext'; // Note: Ensure capitalization matches your file (AuthContext vs authContext)
 import { Navigate } from 'react-router-dom';
 import { FaUserCircle, FaMusic, FaGoogle } from 'react-icons/fa';
 
 const Login = () => {
-  const { login, currentUser } = useAuth();
+  // 1. We changed 'login' to 'googleSignIn' to match the new AuthContext
+  const { googleSignIn, currentUser } = useAuth();
   
   if (currentUser) return <Navigate to="/" />;
+
+  // 2. A simple wrapper to handle the promise
+  const handleLogin = async () => {
+    try {
+      await googleSignIn();
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-slate-900">
@@ -28,7 +38,7 @@ const Login = () => {
           
           <div className="space-y-4">
             <button 
-              onClick={login}
+              onClick={handleLogin} 
               className="group w-full bg-white hover:bg-slate-50 text-slate-900 font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
             >
               <FaGoogle className="text-xl text-slate-600 group-hover:text-brand transition-colors" />

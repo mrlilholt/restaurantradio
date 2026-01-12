@@ -1,91 +1,96 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { FaPlay, FaPause, FaVolumeUp, FaExclamationTriangle, FaHeart, FaRegHeart } from 'react-icons/fa';
-import { useFavorites } from '../context/RadioContext'; // <--- Import this
+import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaExclamationTriangle, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext'; 
 
 const Player = ({ station }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState(false);
   
-  // Get Favorites logic
-  const { isFavorite, toggleFavorite } = useFavorites();
+  // NEW: Volume State
+  const [volume, setVolume] = useState(1); // Default to 100%
+  const [isMuted, setIsMuted] = useState(false);
+  
+  // SAFEGUARDS (Database connection)
+  const { favorites = [], toggleFavorite = () => {} } = useAuth() || {};
 
-  // 1. Safety Check: If no station data, don't try to render
   if (!station) return null;
 
+  // Check if favorite
+  const isFav = Array.isArray(favorites) && favorites.some(fav => fav.stationuuid === station.stationuuid);
+
+  // 1. Handle Station Changes
   useEffect(() => {
-    // Reset state when station changes
     setError(false);
     setIsPlaying(false);
 
     if (audioRef.current) {
-        // 2. Data Safety: Check for valid URL
         const source = station.url_resolved || station.url;
-        
         if (!source) {
-            console.warn("Station missing URL:", station);
             setError(true);
             return;
         }
-
         audioRef.current.src = source;
-        
-        // 3. Play Safety: Handle browser Autoplay policies
+        audioRef.current.load(); // Ensure new source is loaded
+
+        // Try to auto-play
         const playPromise = audioRef.current.play();
-        
         if (playPromise !== undefined) {
             playPromise
-                .then(() => {
-                    setIsPlaying(true);
-                })
+                .then(() => setIsPlaying(true))
                 .catch(err => {
-                    console.error("Playback failed (Autoplay or Format):", err);
+                    console.log("Autoplay prevented:", err);
                     setIsPlaying(false);
                 });
         }
     }
   }, [station]);
 
+  // 2. Handle Volume Changes (NEW)
+  useEffect(() => {
+    if (audioRef.current) {
+      // If muted, volume is 0. Otherwise, use the slider value.
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
   const togglePlay = () => {
     if (!audioRef.current) return;
-
     if (audioRef.current.paused) {
         audioRef.current.play()
             .then(() => setIsPlaying(true))
-            .catch(e => console.error("Manual play failed:", e));
+            .catch(e => console.error("Play failed:", e));
     } else {
         audioRef.current.pause();
         setIsPlaying(false);
     }
   };
 
-  // 4. Render Safety: Handle missing names/favicons gracefully
   const safeName = station.name || "Unknown Station";
   const safeAtmosphere = station.atmosphere || "Live Radio";
-  const isFav = isFavorite(station.stationuuid); // Check if this station is liked
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 z-50 animate-slideUp">
       
+      {/* Hidden Audio Element */}
       <audio 
           ref={audioRef} 
           onError={() => setError(true)} 
           onPause={() => setIsPlaying(false)}
           onPlay={() => setIsPlaying(true)}
+          crossOrigin="anonymous"
       />
 
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* LEFT: Station Info */}
         <div className="flex items-center gap-4 w-1/3">
-           <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center overflow-hidden border border-white/10 flex-shrink-0 relative group">
-              {/* Show Spinner if connecting */}
+           <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center overflow-hidden border border-white/10 flex-shrink-0 relative">
               {!isPlaying && !error && !audioRef.current?.paused && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   </div>
               )}
-              
               {station.favicon ? (
                   <img 
                     src={station.favicon} 
@@ -99,14 +104,20 @@ const Player = ({ station }) => {
            </div>
            
            <div className="hidden sm:block overflow-hidden">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                   <h4 className="text-white text-sm font-medium truncate max-w-[200px] select-none">
                     {safeName}
                   </h4>
-                  {/* FAVORITE BUTTON ADDED HERE */}
+                  
+                  {/* UPDATE: Larger hit area (p-2) and stopPropagation */}
                   <button 
-                    onClick={() => toggleFavorite(station)}
-                    className="text-slate-400 hover:text-brand-light transition-colors focus:outline-none"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevents click conflicts
+                        console.log("Heart clicked for:", station.name); // Debug log
+                        toggleFavorite(station);
+                    }}
+                    className="p-2 text-slate-400 hover:text-brand-light hover:scale-110 active:scale-95 transition-all focus:outline-none cursor-pointer relative z-20"
+                    title="Add to Favorites"
                   >
                     {isFav ? <FaHeart className="text-brand" /> : <FaRegHeart />}
                   </button>
@@ -120,7 +131,7 @@ const Player = ({ station }) => {
            </div>
         </div>
 
-        {/* CENTER: Controls */}
+        {/* CENTER: Play Controls */}
         <div className="flex flex-col items-center gap-1 w-1/3">
            <button 
              onClick={togglePlay}
@@ -133,12 +144,27 @@ const Player = ({ station }) => {
            </button>
         </div>
 
-        {/* RIGHT: Volume (Visual) */}
-        <div className="flex items-center justify-end gap-3 w-1/3 text-slate-400">
-            <FaVolumeUp className="text-sm" />
-            <div className="w-20 h-1 bg-slate-700 rounded-full overflow-hidden">
-                <div className="w-3/4 h-full bg-slate-500 rounded-full" />
-            </div>
+        {/* RIGHT: Real Volume Control */}
+        <div className="flex items-center justify-end gap-3 w-1/3 text-slate-400 group">
+            <button 
+                onClick={() => setIsMuted(!isMuted)}
+                className="hover:text-white transition-colors focus:outline-none"
+            >
+                {isMuted || volume === 0 ? <FaVolumeMute className="text-lg" /> : <FaVolumeUp className="text-lg" />}
+            </button>
+            
+            <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.05"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => {
+                    setVolume(parseFloat(e.target.value));
+                    setIsMuted(false); // Unmute if they drag the slider
+                }}
+                className="w-24 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand hover:bg-slate-600 transition-colors"
+            />
         </div>
       </div>
     </div>

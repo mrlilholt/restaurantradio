@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase'; // Ensure this points to your firebase config
-import { useAuth } from './authContext';
+import { useAuth } from './AuthContext';
 
 const FavoritesContext = createContext();
 

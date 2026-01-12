@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../context/authContext';
+import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUserCircle, FaBars, FaTimes, FaSignOutAlt, FaCog, FaInfoCircle } from 'react-icons/fa';
+import { FaUserCircle, FaBars, FaTimes, FaSignOutAlt, FaCog, FaInfoCircle, FaThLarge } from 'react-icons/fa';
 
 const Navbar = () => {
   const { currentUser, logout, accessStatus } = useAuth();
@@ -33,14 +33,21 @@ const Navbar = () => {
           
           {/* LOGO */}
           <Link to="/" className="flex items-center gap-3 group">
-             {/* Replace this with your <img> tag if you added the logo file */}
-             <div className="w-10 h-10 bg-gradient-to-br from-brand to-brand-dark rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
-                <span className="text-white font-bold text-xl">R</span>
-            </div>
+             {/* 1. Put your file named 'logo.png' inside the 'public' folder! */}
+             <img 
+               src="/logo.png" 
+               alt="Restaurant Radio Logo" 
+               className="w-10 h-10 rounded-xl object-contain bg-slate-800 shadow-lg shadow-brand/20" 
+             />
+             
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-white tracking-tight leading-none">
                 Restaurant<span className="text-brand">Radio</span>
               </h1>
+              {/* This is the missing line: */}
+              <span className="text-[0.65rem] text-slate-400 font-medium tracking-wide uppercase">
+                Set the Ambience
+              </span>
             </div>
           </Link>
 
@@ -91,8 +98,8 @@ const Navbar = () => {
               <p className="text-sm font-bold text-white truncate">{currentUser.email}</p>
            </div>
            
-           <Link to="/" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
-              Dashboard
+           <Link to="/" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
+              <FaThLarge /> Dashboard
            </Link>
            <Link to="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
               <FaCog /> Profile & Settings

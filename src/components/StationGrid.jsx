@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../context/authContext';
+import { useAuth } from '../context/AuthContext';
 import { db } from '../utils/firebase';
 import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, setDoc, getDoc } from 'firebase/firestore'; 
 import { 
   FaCoffee, FaWineGlass, FaUtensils, FaBeer, 
   FaMusic, FaGlobeAmericas, FaTag, FaSpinner, FaArrowLeft, FaMapMarkerAlt, 
-  FaHeart, FaRegHeart, FaStar, FaCocktail, FaLeaf, FaMoon, FaPlay, FaHistory // <--- Added FaHistory
+  FaHeart, FaRegHeart, FaStar, FaCocktail, FaLeaf, FaMoon, FaPlay, FaHistory,
+  FaLock // <--- Added FaLock here
 } from 'react-icons/fa';
 import { useRadioBrowser, getFlagEmoji } from '../hooks/useRadioBrowser';
 import DailyInspo from './DailyInspo';
+import PricingModal from './PricingModal'; 
 
 // 1. Station Categories
 const stationTypes = [
@@ -22,11 +24,11 @@ const stationTypes = [
 
 const StationGrid = ({ onPlayStation }) => { 
   const { countries, searchStation } = useRadioBrowser();
-  const { currentUser } = useAuth();
-  
+const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();  
   // --- STATE ---
+  const [showPricing, setShowPricing] = useState(false); // <--- Fixed Syntax here
   const [favorites, setFavorites] = useState([]);
-  const [recentlyPlayed, setRecentlyPlayed] = useState([]); // <--- NEW STATE
+  const [recentlyPlayed, setRecentlyPlayed] = useState([]); 
   const [selectedLocation, setSelectedLocation] = useState(null); 
   const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,7 +50,7 @@ const StationGrid = ({ onPlayStation }) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.favorites) setFavorites(data.favorites);
-        if (data.recentlyPlayed) setRecentlyPlayed(data.recentlyPlayed); // <--- LOAD HISTORY
+        if (data.recentlyPlayed) setRecentlyPlayed(data.recentlyPlayed); 
       }
     });
 
@@ -76,27 +78,21 @@ const StationGrid = ({ onPlayStation }) => {
     }
   };
 
-  // 2. Add to History (The "Smart" Logic)
+  // 2. Add to History
   const addToHistory = async (station) => {
     if (!currentUser) return;
 
     const userRef = doc(db, 'users', currentUser.uid);
     
     try {
-        // We need to read the current list first to manage the order/limit
         const docSnap = await getDoc(userRef);
         let currentHistory = [];
         if (docSnap.exists() && docSnap.data().recentlyPlayed) {
             currentHistory = docSnap.data().recentlyPlayed;
         }
 
-        // Remove the station if it's already in the list (so we can move it to the top)
         const filtered = currentHistory.filter(s => s.stationuuid !== station.stationuuid);
-        
-        // Add to front
         filtered.unshift(station);
-
-        // Keep only top 6
         const trimmed = filtered.slice(0, 6);
 
         await setDoc(userRef, { recentlyPlayed: trimmed }, { merge: true });
@@ -105,7 +101,6 @@ const StationGrid = ({ onPlayStation }) => {
     }
   };
 
-  // Helper check
   const isFavorite = (id) => favorites.some(f => f.stationuuid === id);
 
   // --- PREPARE CARDS ---
@@ -123,7 +118,6 @@ const StationGrid = ({ onPlayStation }) => {
     description: `${favorites.length} stations in your collection.`
   };
 
-  // NEW HISTORY CARD
   const historyCard = {
     id: 'history',
     name: 'Recently Played',
@@ -157,17 +151,19 @@ const StationGrid = ({ onPlayStation }) => {
   // --- EVENT HANDLERS ---
 
   const handleVibeClick = async (vibe) => {
+    if (!isTrialActive) {
+    setShowPricing(true);
+    return;
+  }
     setLoadingVibeId(vibe.id);
     setStationList([]); 
 
-    // Handle Favorites & History directly
     if (vibe.id === 'favorites' || vibe.id === 'history') {
         setActiveVibe(vibe);
         setLoadingVibeId(null);
         return;
     }
 
-    // Regular Search Logic
     const countryCode = selectedLocation ? selectedLocation.iso_3166_1 : undefined;
     const tags = vibe.tags.split(','); 
     const limit = 30; 
@@ -199,12 +195,13 @@ const StationGrid = ({ onPlayStation }) => {
     setLoadingVibeId(null);
   };
 
-  // THE MASTER PLAY FUNCTION
   const playSpecificStation = (station) => {
-    // 1. Save to History
-    addToHistory(station);
+    if (!isTrialActive) {
+    setShowPricing(true);
+    return;
+  }
 
-    // 2. Play Music
+    addToHistory(station);
     onPlayStation({
         ...station,
         atmosphere: activeVibe ? activeVibe.name : 'Daily Pick',
@@ -261,10 +258,69 @@ const StationGrid = ({ onPlayStation }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">      
+    
+    {/* 1. MOVE TRIAL BANNER HERE (Top of the page) */}
+    {!isPro && (
+      <div className={`mb-8 p-4 rounded-2xl border flex items-center justify-between transition-all ${
+        trialDaysLeft > 0 
+          ? 'bg-brand/10 border-brand/20 text-brand-light' 
+          : 'bg-red-500/10 border-red-500/20 text-red-400'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${trialDaysLeft > 0 ? 'bg-brand/20' : 'bg-red-500/20'}`}>
+            <FaStar size={16} />
+          </div>
+          <div>
+            <p className="font-bold text-sm">
+              {trialDaysLeft > 0 
+                ? `Free Trial: ${trialDaysLeft} days remaining` 
+                : 'Trial Expired'}
+            </p>
+            <p className="text-xs opacity-70">
+              {trialDaysLeft > 0 
+                ? 'Enjoy full access to all premium stations.' 
+                : 'Upgrade to Pro to resume the music.'}
+            </p>
+          </div>
+        </div>
+        <button 
+          onClick={() => setShowPricing(true)}
+          className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+            trialDaysLeft > 0 
+              ? 'bg-brand text-white hover:bg-brand-dark' 
+              : 'bg-red-500 text-white hover:bg-red-600'
+          }`}
+        >
+          {trialDaysLeft > 0 ? 'Upgrade Now' : 'View Plans'}
+        </button>
+      </div>
+    )}
       
-      {/* DAILY INSPO - NOW USES playSpecificStation to save history */}
+      {/* --- DAILY INSPO (LOCKED IF NOT PRO) --- */}
       {!activeVibe && (
-         <DailyInspo onPlay={playSpecificStation} />
+         <div className="relative group mb-8">
+             {/* If PRO, show normally. If FREE, show with blur and lock. */}
+             <div className={!isPro ? "blur-sm pointer-events-none select-none grayscale opacity-50 transition-all duration-500" : ""}>
+                 <DailyInspo onPlay={playSpecificStation} />
+             </div>
+
+             {/* The Lock Overlay */}
+             {!isPro && (
+                 <div className="absolute inset-0 flex items-center justify-center z-20">
+                     <div className="text-center">
+                         <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-3 border border-white/10 shadow-xl">
+                             <FaLock className="text-brand" />
+                         </div>
+                         <button 
+                             onClick={() => setShowPricing(true)}
+                             className="bg-brand text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-brand-dark transition-colors"
+                         >
+                             Unlock Daily Special
+                         </button>
+                     </div>
+                 </div>
+             )}
+         </div>
       )}
 
       {/* HEADER */}
@@ -450,6 +506,19 @@ const StationGrid = ({ onPlayStation }) => {
             </div>
         </div>
       )}
+
+      {/* --- PRICING MODAL (SHOWN IF CLICKED) --- */}
+      {showPricing && (
+          <PricingModal 
+            onClose={() => setShowPricing(false)} 
+            onUpgrade={() => {
+                // Placeholder for Stripe link
+                window.open('https://stripe.com', '_blank'); 
+                setShowPricing(false);
+            }} 
+          />
+      )}
+
     </div>
   );
 };
