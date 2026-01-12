@@ -43,6 +43,19 @@ useEffect(() => {
   }
 }, [searchParams, setSearchParams]);
 
+// Add this under your existing success/confetti useEffect
+useEffect(() => {
+  if (searchParams.get('upgrade') === 'true') {
+    // 1. Open the modal immediately
+    setShowPricing(true);
+
+    // 2. Clean the URL so it doesn't pop up again if they refresh the profile page
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('upgrade');
+    setSearchParams(newParams, { replace: true });
+  }
+}, [searchParams, setSearchParams]);
+
   useEffect(() => {
     const loadProfile = async () => {
       if (currentUser) {
@@ -87,9 +100,18 @@ useEffect(() => {
   // 3. HANDLE UPGRADE ACTION
   // Update this section in your Profile component
 const handleUpgradeClick = async (planType) => {
-  // Pass the planType ('lifetime', 'monthly', etc.) to your utility
-  await startCheckout(planType);
-  setShowPricing(false); 
+  try {
+    // Just pass the name ('monthly', 'annual', or 'lifetime') directly.
+    // The stripePayment utility will handle the IDs and the "mode" logic.
+    await startCheckout(planType);
+    
+    // Close the modal once the redirect starts
+    setShowPricing(false); 
+
+  } catch (error) {
+    console.error("Upgrade error:", error);
+    alert("Could not start checkout. Please try again.");
+  }
 };
 
   return (

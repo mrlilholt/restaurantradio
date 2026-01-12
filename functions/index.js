@@ -19,16 +19,24 @@ exports.createStripeCheckout = functions.https.onCall(async (request) => {
   const userEmail = userSnap.data().email;
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    // 1. Create the base configuration
+    const sessionConfig = {
       payment_method_types: ["card"],
       mode: mode, 
       customer_email: userEmail,
-      customer_creation: 'always', // CRITICAL: Ensures a 'cus_' ID is created for the portal
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { userId: userId, type: mode },
       success_url: "http://restaurantradio.netlify.app/profile?success=true",
       cancel_url: "http://restaurantradio.netlify.app/profile?canceled=true",
-    });
+    };
+
+    // 2. CRITICAL FIX: Only add 'customer_creation' if mode is 'payment'
+    // For 'subscription' mode, Stripe handles customer creation automatically.
+    if (mode === 'payment') {
+      sessionConfig.customer_creation = 'always';
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return { url: session.url };
   } catch (error) {

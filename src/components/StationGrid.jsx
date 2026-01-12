@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../Context/AuthContext';
-import { db } from '../utils/firebase';
+import { db, functions } from '../utils/firebase'; // COMBINED: db and functions
 import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, setDoc, getDoc } from 'firebase/firestore'; 
 import { 
   FaCoffee, FaWineGlass, FaUtensils, FaBeer, 
   FaMusic, FaGlobeAmericas, FaTag, FaSpinner, FaArrowLeft, FaMapMarkerAlt, 
   FaHeart, FaRegHeart, FaStar, FaCocktail, FaLeaf, FaMoon, FaPlay, FaHistory,
-  FaLock // <--- Added FaLock here
+  FaLock 
 } from 'react-icons/fa';
 import { useRadioBrowser, getFlagEmoji } from '../hooks/useRadioBrowser';
 import DailyInspo from './DailyInspo';
-import PricingModal from './PricingModal'; 
-
-// 1. Station Categories
+import { httpsCallable } from 'firebase/functions';
+import { useNavigate } from 'react-router-dom'; // Add this
+// gories
 const stationTypes = [
   { id: 'cafe', name: 'Morning Cafe', tags: 'jazz,acoustic', icon: FaCoffee, color: 'from-orange-400 to-amber-600', description: 'Soft vocals and gentle guitar.' },
   { id: 'dining', name: 'Fine Dining', tags: 'classical,piano', icon: FaUtensils, color: 'from-slate-700 to-slate-900', description: 'Elegant background ambiance.' },
@@ -24,9 +24,8 @@ const stationTypes = [
 
 const StationGrid = ({ onPlayStation }) => { 
   const { countries, searchStation } = useRadioBrowser();
-const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();  
+  const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();  
   // --- STATE ---
-  const [showPricing, setShowPricing] = useState(false); // <--- Fixed Syntax here
   const [favorites, setFavorites] = useState([]);
   const [recentlyPlayed, setRecentlyPlayed] = useState([]); 
   const [selectedLocation, setSelectedLocation] = useState(null); 
@@ -35,6 +34,7 @@ const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();
   const [activeVibe, setActiveVibe] = useState(null); 
   const [stationList, setStationList] = useState([]); 
   const [loadingVibeId, setLoadingVibeId] = useState(null); 
+  const navigate = useNavigate();
 
   // --- FIRESTORE SYNC (Favorites + History) ---
   useEffect(() => {
@@ -152,7 +152,7 @@ const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();
 
   const handleVibeClick = async (vibe) => {
     if (!isTrialActive) {
-    setShowPricing(true);
+    navigate('/profile?upgrade=true');    
     return;
   }
     setLoadingVibeId(vibe.id);
@@ -197,8 +197,8 @@ const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();
 
   const playSpecificStation = (station) => {
     if (!isTrialActive) {
-    setShowPricing(true);
-    return;
+navigate('/profile?upgrade=true');    
+    return; 
   }
 
     addToHistory(station);
@@ -284,7 +284,7 @@ const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();
           </div>
         </div>
         <button 
-          onClick={() => setShowPricing(true)}
+          onClick={() => navigate('/profile?upgrade=true')}
           className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
             trialDaysLeft > 0 
               ? 'bg-brand text-white hover:bg-brand-dark' 
@@ -312,7 +312,7 @@ const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();
                              <FaLock className="text-brand" />
                          </div>
                          <button 
-                             onClick={() => setShowPricing(true)}
+                             onClick={() => navigate('/profile?upgrade=true')}
                              className="bg-brand text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-brand-dark transition-colors"
                          >
                              Unlock Daily Special
@@ -507,17 +507,7 @@ const { currentUser, isPro, isTrialActive, trialDaysLeft } = useAuth();
         </div>
       )}
 
-      {/* --- PRICING MODAL (SHOWN IF CLICKED) --- */}
-      {showPricing && (
-          <PricingModal 
-            onClose={() => setShowPricing(false)} 
-            onUpgrade={() => {
-                // Placeholder for Stripe link
-                window.open('https://stripe.com', '_blank'); 
-                setShowPricing(false);
-            }} 
-          />
-      )}
+     
 
     </div>
   );
