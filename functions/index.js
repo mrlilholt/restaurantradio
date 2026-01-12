@@ -26,8 +26,8 @@ exports.createStripeCheckout = functions.https.onCall(async (request) => {
       customer_creation: 'always', // CRITICAL: Ensures a 'cus_' ID is created for the portal
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { userId: userId, type: mode },
-      success_url: "http://localhost:5173/profile?success=true",
-      cancel_url: "http://localhost:5173/profile?canceled=true",
+      success_url: "http://restaurantradio.netlify.app/profile?success=true",
+      cancel_url: "http://restaurantradio.netlify.app/profile?canceled=true",
     });
 
     return { url: session.url };
@@ -87,7 +87,7 @@ exports.createStripePortal = functions.https.onCall(async (request) => {
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: 'http://localhost:5173/profile',
+      return_url: 'http://restaurantradio.netlify.app',
     });
     return { url: session.url };
   } catch (error) {
