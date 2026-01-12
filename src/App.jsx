@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import { RadioProvider } from './Context/RadioContext';
+import { FavoritesProvider } from './Context/favoritesContext';
+import Legal from './pages/Legal';
 
 // Components
 import Login from './components/Login';
@@ -31,6 +33,7 @@ function App() {
   return (
     <AuthProvider>
       <RadioProvider>
+        <FavoritesProvider> 
         <Router>
           <Routes>
             
@@ -54,10 +57,12 @@ function App() {
                 />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/legal" element={<Legal />} />
             </Route>
 
           </Routes>
         </Router>
+        </FavoritesProvider>
       </RadioProvider>
     </AuthProvider>
   );

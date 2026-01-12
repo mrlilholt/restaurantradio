@@ -5,7 +5,8 @@ import { useAuth } from './AuthContext';
 
 const FavoritesContext = createContext();
 
-export const useFavorites = () => useContext(FavoritesContext);
+// CHANGE THIS NAME:
+export const useCloudFavorites = () => useContext(FavoritesContext); 
 
 export const FavoritesProvider = ({ children }) => {
   const { currentUser } = useAuth();

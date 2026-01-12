@@ -1,24 +1,26 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaExclamationTriangle, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useAuth } from '../Context/AuthContext'; 
+// 1. Use the new renamed hook
+import { useCloudFavorites } from '../Context/favoritesContext';
 
 const Player = ({ station }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState(false);
-  
-  // NEW: Volume State
-  const [volume, setVolume] = useState(1); // Default to 100%
+  const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   
-  // SAFEGUARDS (Database connection)
-  const { favorites = [], toggleFavorite = () => {} } = useAuth() || {};
+  // 2. Call the new hook name
+  const { favorites = [], toggleFavorite } = useCloudFavorites();
+  const { currentUser } = useAuth();
 
   if (!station) return null;
 
-  // Check if favorite
+  // 3. Logic to check if favorited (with safety check)
   const isFav = Array.isArray(favorites) && favorites.some(fav => fav.stationuuid === station.stationuuid);
 
+  // Check if favorite
   // 1. Handle Station Changes
   useEffect(() => {
     setError(false);
@@ -112,12 +114,11 @@ const Player = ({ station }) => {
                   {/* UPDATE: Larger hit area (p-2) and stopPropagation */}
                   <button 
                     onClick={(e) => {
-                        e.stopPropagation(); // Prevents click conflicts
-                        console.log("Heart clicked for:", station.name); // Debug log
+                        e.stopPropagation();
+                        if (!currentUser) return alert("Log in to save favorites!");
                         toggleFavorite(station);
                     }}
-                    className="p-2 text-slate-400 hover:text-brand-light hover:scale-110 active:scale-95 transition-all focus:outline-none cursor-pointer relative z-20"
-                    title="Add to Favorites"
+                    className="p-2 text-slate-400 hover:text-brand-light hover:scale-110 active:scale-95 transition-all"
                   >
                     {isFav ? <FaHeart className="text-brand" /> : <FaRegHeart />}
                   </button>
