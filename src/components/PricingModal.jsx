@@ -97,17 +97,33 @@ const PricingModal = ({ onClose, onUpgrade }) => {
                 </div>
 
                 {/* ACTION BUTTON */}
-                <button 
-                    onClick={() => onUpgrade(selectedPlan)}
-                    className={`w-full py-4 rounded-xl font-bold text-white text-lg shadow-xl transition-all mt-4 transform active:scale-[0.98]
-                        ${selectedPlan === 'lifetime' 
-                            ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:shadow-amber-500/25' 
-                            : 'bg-brand hover:bg-brand-dark hover:shadow-brand/25'}`}
-                >
-                    {selectedPlan === 'lifetime' ? 'Get Lifetime Access - $10' : 
-                     selectedPlan === 'annual' ? 'Start Annual Plan - $5/yr' : 
-                     'Start Monthly Plan - $0.50/mo'}
-                </button>
+<button 
+    onClick={() => {
+        // 1. Send the event to Google Analytics
+        if (typeof window !== 'undefined' && window.gtag) {
+            window.gtag('event', 'begin_checkout', {
+                currency: 'USD',
+                value: selectedPlan === 'lifetime' ? 10.00 : selectedPlan === 'annual' ? 5.00 : 0.50,
+                items: [{
+                    item_id: `plan_${selectedPlan}`,
+                    item_name: `${selectedPlan} subscription`,
+                    item_category: 'Upgrade'
+                }]
+            });
+        }
+        
+        // 2. Run your existing upgrade logic
+        onUpgrade(selectedPlan);
+    }}
+    className={`w-full py-4 rounded-xl font-bold text-white text-lg shadow-xl transition-all mt-4 transform active:scale-[0.98]
+        ${selectedPlan === 'lifetime' 
+            ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:shadow-amber-500/25' 
+            : 'bg-brand hover:bg-brand-dark hover:shadow-brand/25'}`}
+>
+    {selectedPlan === 'lifetime' ? 'Get Lifetime Access - $10' : 
+     selectedPlan === 'annual' ? 'Start Annual Plan - $5/yr' : 
+     'Start Monthly Plan - $0.50/mo'}
+</button>
 
                 <p className="text-center text-xs text-slate-500 pt-2">
                     Secured by Stripe. 100% Money-back guarantee.

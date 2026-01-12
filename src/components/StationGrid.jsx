@@ -284,15 +284,19 @@ navigate('/profile?upgrade=true');
           </div>
         </div>
         <button 
-          onClick={() => navigate('/profile?upgrade=true')}
-          className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
-            trialDaysLeft > 0 
-              ? 'bg-brand text-white hover:bg-brand-dark' 
-              : 'bg-red-500 text-white hover:bg-red-600'
-          }`}
-        >
-          {trialDaysLeft > 0 ? 'Upgrade Now' : 'View Plans'}
-        </button>
+  onClick={() => {
+    // TRACKING PING
+    if (window.gtag) {
+      window.gtag('event', 'click_upgrade_banner', { 
+        trial_status: trialDaysLeft > 0 ? 'active' : 'expired' 
+      });
+    }
+    navigate('/profile?upgrade=true');
+  }}
+  className={`px-4 py-2 rounded-xl font-bold text-xs ...`}
+>
+  {trialDaysLeft > 0 ? 'Upgrade Now' : 'View Plans'}
+</button>
       </div>
     )}
       
@@ -312,11 +316,17 @@ navigate('/profile?upgrade=true');
                              <FaLock className="text-brand" />
                          </div>
                          <button 
-                             onClick={() => navigate('/profile?upgrade=true')}
-                             className="bg-brand text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-brand-dark transition-colors"
-                         >
-                             Unlock Daily Special
-                         </button>
+  onClick={() => {
+    // TRACKING PING
+    if (window.gtag) {
+      window.gtag('event', 'click_unlock_daily_special');
+    }
+    navigate('/profile?upgrade=true');
+  }}
+  className="bg-brand text-white font-bold py-2 px-6 rounded-full ..."
+>
+  Unlock Daily Special
+</button>
                      </div>
                  </div>
              )}
