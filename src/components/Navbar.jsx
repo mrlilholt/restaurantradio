@@ -40,7 +40,7 @@ const Navbar = () => {
               className="w-20 h-20 rounded-xl object-contain bg-slate-800 shadow-lg shadow-brand/20" 
             />
              
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-0">
               <img 
                 src="/bannerNav.png" 
                 alt="Restaurant Radio" 
@@ -48,8 +48,8 @@ const Navbar = () => {
               />
               
               {/* Tagline to the RIGHT */}
-              <span className="hidden sm:block text-[0.65rem] text-slate-400 font-medium tracking-wide uppercase border-l border-white/10 pl-3 h-4 flex items-center">
-                Set the Ambience
+              <span className="hidden sm:block text-[0.75rem] text-slate-400 font-medium tracking-wide uppercase border-l border-white/10 pl-0 h-0 flex items-center">
+                | Set the Ambience |
               </span>
             </div>
           </Link>
