@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /legal
+Disallow: /profile
+Disallow: /checkout
+Disallow: /admin
+
+# Host
+Host: https://restaurantradio.netlify.app
+
+# Sitemap location
+Sitemap: https://restaurantradio.netlify.app/sitemap.xml
