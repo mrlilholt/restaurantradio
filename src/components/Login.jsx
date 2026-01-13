@@ -27,9 +27,17 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-md px-4">
         <div className="bg-slate-800/50 backdrop-blur-xl border border-white/10 p-8 sm:p-10 rounded-3xl shadow-2xl">
           <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-gradient-to-tr from-brand to-brand-light rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-brand/20 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-               <FaMusic className="text-white text-4xl" />
-            </div>
+            {/* 1. NEW BANNER IMAGE */}
+            <img 
+              src="/banner.png" 
+              alt="Welcome Banner" 
+              className="w-full h-32 object-cover rounded-2xl mb-6 shadow-lg border border-white/10"
+            />
+            <img 
+              src="/logo.png" 
+              alt="Restaurant Radio" 
+              className="w-40 h-40 mx-auto mb-6 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+            />
             <h2 className="text-3xl font-bold text-white mb-3">Welcome Back</h2>
             <p className="text-slate-400 text-lg leading-relaxed">
               Curate the perfect atmosphere for your guests.

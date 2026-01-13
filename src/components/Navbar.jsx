@@ -29,23 +29,26 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-24">
           
           {/* LOGO */}
           <Link to="/" className="flex items-center gap-3 group">
              {/* 1. Put your file named 'logo.png' inside the 'public' folder! */}
              <img 
-               src="/logo.png" 
-               alt="Restaurant Radio Logo" 
-               className="w-10 h-10 rounded-xl object-contain bg-slate-800 shadow-lg shadow-brand/20" 
-             />
+              src="/logo.png" 
+              alt="Restaurant Radio Logo" 
+              className="w-20 h-20 rounded-xl object-contain bg-slate-800 shadow-lg shadow-brand/20" 
+            />
              
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-white tracking-tight leading-none">
-                Restaurant<span className="text-brand">Radio</span>
-              </h1>
-              {/* This is the missing line: */}
-              <span className="text-[0.65rem] text-slate-400 font-medium tracking-wide uppercase">
+            <div className="flex items-center gap-3">
+              <img 
+                src="/bannerNav.png" 
+                alt="Restaurant Radio" 
+                className="h-12 object-contain" 
+              />
+              
+              {/* Tagline to the RIGHT */}
+              <span className="hidden sm:block text-[0.65rem] text-slate-400 font-medium tracking-wide uppercase border-l border-white/10 pl-3 h-4 flex items-center">
                 Set the Ambience
               </span>
             </div>
