@@ -13,6 +13,15 @@ import DailyInspo from './DailyInspo';
 import { httpsCallable } from 'firebase/functions';
 import { useNavigate } from 'react-router-dom'; // Add this
 // gories
+const getTimeContext = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return { label: "The Morning Rush", activity: "brewing coffee to", vibe: "Morning Cafe" };
+    if (hour >= 11 && hour < 15) return { label: "The Lunch Crowd", activity: "serving lunch to", vibe: "Bistro Beats" };
+    if (hour >= 15 && hour < 17) return { label: "The Afternoon Slump", activity: "powering through to", vibe: "Acoustic Chill" };
+    if (hour >= 17 && hour < 22) return { label: "Dinner Service", activity: "setting the mood with", vibe: "Lounge & Wine" };
+    return { label: "Late Night Vibes", activity: "winding down to", vibe: "Midnight Jazz" };
+};
+
 const stationTypes = [
   { id: 'cafe', name: 'Morning Cafe', tags: 'jazz,acoustic', icon: FaCoffee, color: 'from-orange-400 to-amber-600', description: 'Soft vocals and gentle guitar.' },
   { id: 'dining', name: 'Fine Dining', tags: 'classical,piano', icon: FaUtensils, color: 'from-slate-700 to-slate-900', description: 'Elegant background ambiance.' },
@@ -35,6 +44,7 @@ const StationGrid = ({ onPlayStation }) => {
   const [stationList, setStationList] = useState([]); 
   const [loadingVibeId, setLoadingVibeId] = useState(null); 
   const navigate = useNavigate();
+  const timeContext = getTimeContext();
 
   // --- FIRESTORE SYNC (Favorites + History) ---
   useEffect(() => {
@@ -305,6 +315,19 @@ navigate('/profile?upgrade=true');
          <div className="relative group mb-8">
              {/* If PRO, show normally. If FREE, show with blur and lock. */}
              <div className={!isPro ? "blur-sm pointer-events-none select-none grayscale opacity-50 transition-all duration-500" : ""}>
+                 {/* LIVE STATUS PILL */}
+{!activeVibe && (
+    <div className="flex items-center gap-3 mb-6 px-2 animate-fadeIn">
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-500 px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            LIVE
+        </div>
+        <p className="text-slate-400 text-xs md:text-sm">
+            It's <span className="text-white font-bold">{timeContext.label}</span>. 
+            Most venues are {timeContext.activity} <span className="text-brand font-bold">{timeContext.vibe}</span>.
+        </p>
+    </div>
+)}
                  <DailyInspo onPlay={playSpecificStation} />
              </div>
 
@@ -404,18 +427,7 @@ navigate('/profile?upgrade=true');
                         <station.icon className="text-white text-xl" />
                     </div>
 
-                    {station.id !== 'favorites' && station.id !== 'history' && (
-                        <button 
-                            onClick={(e) => toggleFavorite(e, station)}
-                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110 active:scale-90 backdrop-blur-md"
-                        >
-                            {isFavorite(station.stationuuid) ? (
-                                <FaHeart className="text-brand text-sm" />
-                            ) : (
-                                <FaRegHeart className="text-white/70 text-sm" />
-                            )}
-                        </button>
-                    )}
+                    {station.id !== 'favorites' && station.id !== 'history' }
                 </div>
 
                 <div className="relative z-10 mt-6 mb-2">
