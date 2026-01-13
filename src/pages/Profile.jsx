@@ -26,6 +26,18 @@ const Profile = () => {
     country: '',
     city: ''
   });
+  const toggleLivePill = async () => {
+  try {
+    const docRef = doc(db, 'users', currentUser.uid);
+    // Toggle the current value (defaulting to true if undefined)
+    const newValue = formData.showLivePill === false ? true : false;
+
+    await updateDoc(docRef, { showLivePill: newValue });
+    setFormData(prev => ({ ...prev, showLivePill: newValue }));
+  } catch (error) {
+    console.error("Error toggling pill:", error);
+  }
+};
 // Celebration Effect for Stripe Success
 useEffect(() => {
   if (searchParams.get('success') === 'true') {
@@ -67,7 +79,8 @@ useEffect(() => {
             restaurantName: data.restaurantName || '',
             cuisineType: data.cuisineType || '',
             country: data.country || '',
-            city: data.city || ''
+            city: data.city || '',
+            showLivePill: data.showLivePill !== false // ADD THIS
           });
         }
       }
@@ -198,7 +211,24 @@ const handleUpgradeClick = async (planType) => {
                         />
                     </div>
                 </div>
+                    {/* DASHBOARD PREFERENCES */}
+<div className="pt-6 border-t border-white/5 space-y-4">
+    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Dashboard Preferences</h3>
 
+    <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-white/5">
+        <div>
+            <p className="text-sm font-bold text-white">Live Status Pill</p>
+            <p className="text-[11px] text-slate-500">Show "Dinner Service" and vibe suggestions on home screen.</p>
+        </div>
+        <button 
+            type="button"
+            onClick={toggleLivePill}
+            className={`w-12 h-6 rounded-full transition-all relative ${formData.showLivePill ? 'bg-brand' : 'bg-slate-700'}`}
+        >
+            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.showLivePill ? 'left-7' : 'left-1'}`} />
+        </button>
+    </div>
+</div>
                 <div className="pt-4 flex items-center gap-4">
                     <button 
                     type="submit" 

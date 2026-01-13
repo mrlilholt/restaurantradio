@@ -45,6 +45,7 @@ const StationGrid = ({ onPlayStation }) => {
   const [loadingVibeId, setLoadingVibeId] = useState(null); 
   const navigate = useNavigate();
   const timeContext = getTimeContext();
+  const [showLivePill, setShowLivePill] = useState(true); // Default to true
 
   // --- FIRESTORE SYNC (Favorites + History) ---
   useEffect(() => {
@@ -60,7 +61,8 @@ const StationGrid = ({ onPlayStation }) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.favorites) setFavorites(data.favorites);
-        if (data.recentlyPlayed) setRecentlyPlayed(data.recentlyPlayed); 
+        if (data.recentlyPlayed) setRecentlyPlayed(data.recentlyPlayed);
+        setShowLivePill(data.showLivePill !== false); 
       }
     });
 
@@ -316,7 +318,7 @@ navigate('/profile?upgrade=true');
              {/* If PRO, show normally. If FREE, show with blur and lock. */}
              <div className={!isPro ? "blur-sm pointer-events-none select-none grayscale opacity-50 transition-all duration-500" : ""}>
                  {/* LIVE STATUS PILL */}
-{!activeVibe && (
+{!activeVibe && showLivePill && (
     <div className="flex items-center gap-3 mb-6 px-2 animate-fadeIn">
         <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-500 px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
