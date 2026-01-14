@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
+@theme {
+  --font-title: "Montserrat", "system-ui", "sans-serif";
+  --font-sans: "Inter", "system-ui", "sans-serif";
+
+  --color-brand: #38bdf8;
+  --color-brand-dark: #0284c7;
+  --color-brand-light: #e0f2fe;
+}
+
 /* Optional: Add a nice base font or dark mode background here later */
 body {
-  @apply bg-slate-900 text-white; /* Dark mode by default for that 'Radio' vibe */
+  @apply bg-slate-900 text-white font-sans; /* Dark mode by default for that 'Radio' vibe */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-title tracking-tight;
+}
+
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
 }

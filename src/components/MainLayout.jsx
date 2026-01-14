@@ -6,17 +6,17 @@ import Footer from './Footer'; // This was causing the error
 
 const MainLayout = ({ currentStation }) => {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-brand selection:text-white pb-24">
+    <div className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-brand selection:text-white flex flex-col ${currentStation ? 'pb-28' : 'pb-0'}`}>
       {/* 1. Navbar is always here */}
       <Navbar />
 
       {/* 2. Main Content Area */}
-      <main>
+      <main className="flex-grow">
         <Outlet />
       </main>
 
-      {/* 3. ADD THE FOOTER HERE */}
-      <Footer />
+      {/* 3. FOOTER (Hidden when Player is active) */}
+      {!currentStation && <Footer />}
 
       {/* 4. Player (Fixed at bottom) */}
       {currentStation && <Player station={currentStation} />}

@@ -51,41 +51,87 @@ const DailyInspo = ({ onPlay }) => {
     // D. DEFAULT FALLBACK
     return { tag: 'lofi', title: 'Daily Focus', desc: 'Chill beats to get you through the shift.', label: 'Daily Special' };
   };
+// Helper: Checks if a stream url is actually alive
+// Helper: Checks if a stream url is actually alive
+  const verifyStream = (url) => {
+    return new Promise((resolve) => {
+      const audio = new Audio(url);
+      audio.muted = true;
+      const onGood = () => { cleanup(); resolve(true); };
+      const onBad = () => { cleanup(); resolve(false); };
+      const cleanup = () => {
+        audio.removeEventListener('canplay', onGood);
+        audio.removeEventListener('error', onBad);
+        audio.pause();
+        audio.src = "";
+      };
+      audio.addEventListener('canplay', onGood);
+      audio.addEventListener('error', onBad);
+      audio.src = url;
+      setTimeout(onBad, 2500); // 2.5s Timeout
+    });
+  };
 
   useEffect(() => {
-    const fetchRecommendation = async () => {
+    const initDailyInspo = async () => {
       if (!currentUser) return;
 
       try {
-        const docRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setProfile(data);
+        // 1. FETCH PROFILE (If we don't have it yet)
+        let userProfile = profile;
+        if (!userProfile) {
+           const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
+           if (docSnap.exists()) {
+             userProfile = docSnap.data();
+             setProfile(userProfile);
+           } else {
+             console.log("No profile found");
+             return;
+           }
+        }
 
-          // Find vibe based on cuisine AND time of day
-          const vibe = getVibe(data.cuisineType);
+        if (!userProfile?.cuisineType) return;
+
+        // 2. GET VIBE & FETCH STATIONS
+        const vibe = getVibe(userProfile.cuisineType);
+        
+        // Fetch top 6 stations for this vibe
+        const response = await fetch(
+           `https://de1.api.radio-browser.info/json/stations/bytag/${vibe.tag}?limit=6&order=votes&reverse=true`
+        );
+        const stations = await response.json();
+
+        if (stations && stations.length > 0) {
+          // 3. CHECK FOR "DEAD AIR"
+          let validStation = null;
           
-          const response = await fetch(
-            `https://de1.api.radio-browser.info/json/stations/bytag/${vibe.tag}?limit=15&order=votes&reverse=true`
-          );
-          const stations = await response.json();
-          
-          if (stations.length > 0) {
-            const randomStation = stations[Math.floor(Math.random() * stations.length)];
-            setSuggestion({ ...randomStation, vibeDetails: vibe });
+          // Loop through candidates until one works
+          for (const station of stations) {
+             // Use resolved URL if available, else standard URL
+             const testUrl = station.url_resolved || station.url;
+             const isLive = await verifyStream(testUrl);
+             
+             if (isLive) {
+               validStation = station;
+               break; // Found a winner!
+             }
           }
+
+          // If we found a live one, use it. If not, fallback to the first one.
+          setSuggestion({
+            ...(validStation || stations[0]),
+            vibeDetails: vibe
+          });
         }
       } catch (error) {
-        console.error("Error fetching inspo:", error);
+        console.error("DailyInspo Error:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRecommendation();
-  }, [currentUser]);
+    initDailyInspo();
+  }, [currentUser]); // Depend on currentUser so it runs on login
 
   if (!isVisible || !profile?.cuisineType || !suggestion) return null;
 
@@ -108,7 +154,7 @@ const DailyInspo = ({ onPlay }) => {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               {/* This now displays "Lunch Special", "Dinner Special", etc. */}
-              <span className="bg-brand/20 text-brand text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+              <span className="bg-brand/20 text-brand text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">
                 {suggestion.vibeDetails.label}
               </span>
               <span className="text-slate-400 text-xs font-medium">

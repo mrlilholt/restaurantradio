@@ -24,20 +24,21 @@ const Profile = () => {
     restaurantName: '',
     cuisineType: '',
     country: '',
-    city: ''
+    city: '',
+    showDailyInspo: true // Default to true
   });
-  const toggleLivePill = async () => {
-  try {
-    const docRef = doc(db, 'users', currentUser.uid);
-    // Toggle the current value (defaulting to true if undefined)
-    const newValue = formData.showLivePill === false ? true : false;
 
-    await updateDoc(docRef, { showLivePill: newValue });
-    setFormData(prev => ({ ...prev, showLivePill: newValue }));
-  } catch (error) {
-    console.error("Error toggling pill:", error);
-  }
-};
+  const toggleDailyInspo = async () => {
+    try {
+      const docRef = doc(db, 'users', currentUser.uid);
+      const newValue = !formData.showDailyInspo;
+      
+      await updateDoc(docRef, { showDailyInspo: newValue });
+      setFormData(prev => ({ ...prev, showDailyInspo: newValue }));
+    } catch (error) {
+      console.error("Error toggling inspo:", error);
+    }
+  };
 // Celebration Effect for Stripe Success
 useEffect(() => {
   if (searchParams.get('success') === 'true') {
@@ -80,7 +81,7 @@ useEffect(() => {
             cuisineType: data.cuisineType || '',
             country: data.country || '',
             city: data.city || '',
-            showLivePill: data.showLivePill !== false // ADD THIS
+            showDailyInspo: data.showDailyInspo !== false // Default true if not set
           });
         }
       }
@@ -217,15 +218,15 @@ const handleUpgradeClick = async (planType) => {
 
     <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-white/5">
         <div>
-            <p className="text-sm font-bold text-white">Live Status Pill</p>
-            <p className="text-[11px] text-slate-500">Show "Dinner Service" and vibe suggestions on home screen.</p>
+            <p className="text-sm font-bold text-white">Daily Inspiration</p>
+            <p className="text-[11px] text-slate-500">Show the "Daily Pick" recommendations on dashboard.</p>
         </div>
         <button 
             type="button"
-            onClick={toggleLivePill}
-            className={`w-12 h-6 rounded-full transition-all relative ${formData.showLivePill ? 'bg-brand' : 'bg-slate-700'}`}
+            onClick={toggleDailyInspo}
+            className={`w-12 h-6 rounded-full transition-all relative ${formData.showDailyInspo ? 'bg-brand' : 'bg-slate-700'}`}
         >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.showLivePill ? 'left-7' : 'left-1'}`} />
+            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.showDailyInspo ? 'left-7' : 'left-1'}`} />
         </button>
     </div>
 </div>

@@ -40,26 +40,25 @@ export const useRadioBrowser = () => {
   }, []);
 
   // 2. Search Stations
-  const searchStation = async (countryCode, tag) => {
-    setLoading(true);
-    try {
-      // Build the query URL
-      // If countryCode is provided, we filter by it. If not, we just use the tag.
-      let url = `${BASE_URL}/stations/search?limit=20&hidebroken=true&order=votes&reverse=true&tag=${tag}`;
-      
-      if (countryCode) {
-        url += `&countrycode=${countryCode}`;
-      }
-
-      const response = await fetch(url);
-      const data = await response.json();
-      setLoading(false);
-      return data;
-    } catch (err) {
-      console.error("Station search failed:", err);
-      setLoading(false);
-      return [];
-    }
+  const searchStation = async (countryCode, tag, city = "") => {
+  try {
+    const api = new RadioBrowserApi(fetch.bind(window), 'My App Name');
+    
+    const stations = await api.searchStations({
+      countryCode: countryCode, // The 2-letter code (e.g., 'US', 'FR')
+      tag: tag,                 // e.g., 'jazz'
+      state: city,              // 'state' matches cities/regions loosely in RadioBrowser
+      limit: 30,
+      hidebroken: true,
+      order: 'votes',
+      reverse: true
+    });
+    
+    return stations;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
   };
 
   return { countries, searchStation, loading, error };

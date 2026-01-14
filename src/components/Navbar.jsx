@@ -37,7 +37,7 @@ const Navbar = () => {
              <img 
               src="/logo.png" 
               alt="Restaurant Radio Logo" 
-              className="w-20 h-20 rounded-xl object-contain bg-slate-800 shadow-lg shadow-brand/20" 
+              className="w-20 h-20 object-contain" 
             />
              
             <div className="flex items-center gap-0">
@@ -46,11 +46,6 @@ const Navbar = () => {
                 alt="Restaurant Radio" 
                 className="h-12 object-contain" 
               />
-              
-              {/* Tagline to the RIGHT */}
-              <span className="hidden sm:block text-[0.75rem] text-slate-400 font-medium tracking-wide uppercase border-l border-white/10 pl-0 h-0 flex items-center">
-                | Set the Ambience |
-              </span>
             </div>
           </Link>
 
