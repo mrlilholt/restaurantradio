@@ -9,6 +9,10 @@
   --color-brand-light: #e0f2fe;
 }
 
+html {
+  font-size: 67%;
+}
+
 /* Optional: Add a nice base font or dark mode background here later */
 body {
   @apply bg-slate-900 text-white font-sans; /* Dark mode by default for that 'Radio' vibe */
