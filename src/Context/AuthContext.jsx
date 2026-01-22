@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserData(data); // Save full data to check createdAt
-                setIsPro(data.isPro || false);
-                setFavorites(data.favorites || []); 
+                setIsPro(data.isPro || data.earnedFreeAccess || false);
+                setFavorites(data.favorites || []);
             }
         });
       } else {
@@ -77,12 +77,23 @@ const trialStatus = getTrialStatus();
     
     const userRef = doc(db, 'users', user.uid);
     const snap = await getDoc(userRef);
+    
+    // Only run this if it's a NEW user
     if (!snap.exists()) {
+        // 1. GET THE CODE (Must match 'referralCode' from App.jsx)
+        const storedReferralCode = localStorage.getItem('referralCode'); 
+        
         await setDoc(userRef, { 
             email: user.email,
             isPro: false, 
-            createdAt: serverTimestamp(), // START THE TRIAL CLOCK
-            favorites: []
+            createdAt: serverTimestamp(),
+            favorites: [],
+            
+            // 2. REFERRAL SETUP (Your robust version)
+            referralCode: user.uid,            // Their own code to share
+            referredBy: storedReferralCode || null, // Who invited them
+            referralCount: 0,                  // Start at 0
+            earnedFreeAccess: false            // Start as false
         }, { merge: true });
     }
   };
@@ -90,11 +101,21 @@ const trialStatus = getTrialStatus();
   const emailSignUp = async (email, password) => {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const user = result.user;
+      
+      // 1. GET THE CODE
+      const storedReferralCode = localStorage.getItem('referralCode');
+
       await setDoc(doc(db, 'users', user.uid), { 
         email: user.email, 
         isPro: false,
-        createdAt: serverTimestamp(), // START THE TRIAL CLOCK
-        favorites: []
+        createdAt: serverTimestamp(),
+        favorites: [],
+        
+        // 2. REFERRAL SETUP
+        referralCode: user.uid,
+        referredBy: storedReferralCode || null,
+        referralCount: 0,
+        earnedFreeAccess: false
       });
   };
 
@@ -112,6 +133,7 @@ const trialStatus = getTrialStatus();
     favorites,      
     googleSignIn,
     emailSignUp,
+    userData,
     emailSignIn,
     logout,
     accessStatus: {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import { RadioProvider } from './Context/RadioContext';
@@ -29,6 +29,26 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   // State lifted to the top so Player can access it from anywhere
   const [currentStation, setCurrentStation] = useState(null);
+// 2. ADD THIS BLOCK: Capture Referral Code
+React.useEffect(() => {
+    // 1. Check if there is a 'ref' param in the URL
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+
+    // 2. If found, save it to the browser's local storage
+    if (refCode) {
+      localStorage.setItem('referralCode', refCode);
+      console.log("Referral code captured:", refCode);
+    }
+  }, []);
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+      localStorage.setItem('referredBy', refCode);
+    }
+  }, []);
 
   return (
     <AuthProvider>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { db } from '../utils/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { FaStore, FaGlobeAmericas, FaSave, FaCheck, FaCreditCard, FaCrown, FaBuilding } from 'react-icons/fa';
+import { FaStore, FaGlobeAmericas, FaSave, FaCheck, FaCreditCard, FaCrown, FaBuilding, FaGift, FaCopy } from 'react-icons/fa';
 import { useRadioBrowser } from '../hooks/useRadioBrowser';
 import { startCheckout } from '../utils/stripePayment';
 import confetti from 'canvas-confetti';
@@ -11,7 +11,7 @@ import PricingModal from '../components/PricingModal';
 import { useSearchParams } from 'react-router-dom'; // Add this line
 
 const Profile = () => {
-  const { currentUser, isPro } = useAuth();
+  const { currentUser, isPro, userData } = useAuth();
   const { countries } = useRadioBrowser();
   const [searchParams, setSearchParams] = useSearchParams(); // Add this line
   const [loading, setLoading] = useState(false);
@@ -27,6 +27,16 @@ const Profile = () => {
     city: '',
     showDailyInspo: true // Default to true
   });
+// 2. Prepare Referral Data
+  const referralLink = `https://restaurantradio.netlify.app/?ref=${currentUser?.uid}`;
+  const referralCount = userData?.referralCount || 0;
+  const isFreeLifetime = userData?.earnedFreeAccess;
+
+  const copyLink = () => {
+      navigator.clipboard.writeText(referralLink);
+      alert("Referral link copied!");
+  };
+  
 
   const toggleDailyInspo = async () => {
     try {
@@ -306,9 +316,57 @@ const handleUpgradeClick = async (planType) => {
                             </button>
                         </div>
                     )}
+                    
                 </div>
             </div>
+{/* 3. NEW REFERRAL CARD (Add this below subscription card) */}
+            <div className={`bg-slate-800/50 border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden ${isFreeLifetime ? 'border-amber-500/30' : ''}`}>
+                 <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-pink-500/10 rounded-lg text-pink-400">
+                        <FaGift size={20} />
+                    </div>
+                    <h2 className="text-xl font-bold text-white">Get Pro for Free</h2>
+                 </div>
+                 
+                 {isFreeLifetime ? (
+                     <div className="text-center py-4">
+                         <p className="text-2xl mb-2">🎉</p>
+                         <h3 className="text-white font-bold text-lg">You earned Lifetime Access!</h3>
+                         <p className="text-slate-400 text-sm">Thanks for referring your friends.</p>
+                     </div>
+                 ) : (
+                     <>
+                        <p className="text-sm text-slate-300 mb-4 leading-relaxed">
+                            Invite 2 other venue owners. When they upgrade to Pro, you get <span className="text-brand font-bold">Lifetime Access</span> for free.
+                        </p>
+                        
+                        <div className="bg-slate-900 rounded-xl p-1 flex items-center mb-4 border border-slate-700">
+                            <code className="flex-1 text-slate-400 text-xs px-3 truncate font-mono">
+                                .../?ref={currentUser?.uid}
+                            </code>
+                            <button 
+                                onClick={copyLink}
+                                className="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition-colors"
+                            >
+                                <FaCopy size={14} />
+                            </button>
+                        </div>
 
+                        <div>
+                            <div className="flex justify-between text-xs text-slate-400 mb-1 font-bold uppercase tracking-wider">
+                                <span>Progress</span>
+                                <span>{referralCount} / 2 Referrals</span>
+                            </div>
+                            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-pink-500 to-rose-500 transition-all duration-500" 
+                                    style={{ width: `${(referralCount / 2) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                     </>
+                 )}
+            </div>
             <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-6 shadow-xl">
                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Account</h3>
                  <div className="space-y-1">
