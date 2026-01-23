@@ -35,8 +35,8 @@ exports.createStripeCheckout = onCall(async (request) => {
       customer_email: userEmail,
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { userId: userId, type: mode },
-      success_url: "http://restaurantradio.netlify.app/profile?success=true",
-      cancel_url: "http://restaurantradio.netlify.app/profile?canceled=true",
+      success_url: "https://restaurantradio.netlify.app/profile?success=true",
+      cancel_url: "https://restaurantradio.netlify.app/profile?canceled=true",
     };
 
     if (mode === 'payment') {
@@ -100,7 +100,7 @@ exports.createStripePortal = onCall(async (request) => {
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: 'http://restaurantradio.netlify.app/profile', 
+      return_url: 'https://restaurantradio.netlify.app/profile', 
     });
     return { url: session.url };
   } catch (error) {
